@@ -1,0 +1,457 @@
+git remote add origin https://github.com/kshetresiddharth1-max/Sidd-Hub-.git
+git branch -M main
+git push -u origin mainecho "# Sidd-Hub-" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/kshetresiddharth1-max/Sidd-Hub-.git
+git push -u origin main
+-- ============================================
+-- HUS HUB — FULL SCRIPT
+-- High School Life RP | Key: youtube.com/@Siddharth-20S
+-- ============================================
+
+local Players     = game:GetService("Players")
+local CoreGui     = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService  = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local VirtualUser = game:GetService("VirtualUser")
+local TeleportService = game:GetService("TeleportService")
+local Lighting    = game:GetService("Lighting")
+local LocalPlayer = Players.LocalPlayer
+local unpack_     = table.unpack or unpack
+
+local resetConn = nil
+
+-- ============================================
+-- ⚙️ CONFIG
+-- ============================================
+local CONFIG = {
+    ValidKey = "Siddharth1",
+    Title = "HUS Hub | Key",
+    Subtitle = "Key: youtube.com/@Siddharth-20S",
+    PlaceholderText = "key",
+    WebhookURL = "",
+    LogEnabled = false,
+}
+
+local function validateKey(k) return k == CONFIG.ValidKey end
+
+local function sendLog(title, msg, color)
+    if not CONFIG.LogEnabled or CONFIG.WebhookURL == "" then return end
+    task.spawn(function()
+        pcall(function()
+            request({
+                Url = CONFIG.WebhookURL, Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = HttpService:JSONEncode({
+                    username = "HUS Hub",
+                    embeds = {{
+                        title = title, description = msg, color = color or 3447003,
+                        fields = {
+                            { name = "User", value = "`" .. LocalPlayer.Name .. "`", inline = true },
+                            { name = "Game", value = "`" .. game.PlaceId .. "`", inline = true },
+                        },
+                        footer = { text = "HUS Hub • " .. os.date("%Y-%m-%d %H:%M:%S") },
+                    }},
+                }),
+            })
+        end)
+    end)
+end
+
+local function PlayClick()
+    local s = Instance.new("Sound")
+    s.SoundId = "rbxassetid://91741510066624"
+    s.Volume = 3
+    s.Parent = game:GetService("SoundService")
+    s:Play()
+    game:GetService("Debris"):AddItem(s, 1)
+end
+
+local Notify = function(t, c) print(("[HUS] %s | %s"):format(t, c)) end
+
+-- ============================================
+-- HUB
+-- ============================================
+local function loadHub()
+
+    local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+    Notify = function(t, c)
+        pcall(function() Rayfield:Notify({ Title = t, Content = c, Duration = 4, Image = 4483362458 }) end)
+    end
+
+    -- ---------- SAVE ----------
+    local SAVE = {}
+    local DataFile = "HusHub.json"
+    pcall(function()
+        if writefile and isfile(DataFile) then
+            local d = HttpService:JSONDecode(readfile(DataFile))
+            if type(d) == "table" then for k, v in pairs(d) do SAVE[k] = v end end
+        end
+    end)
+    local function Save() pcall(function() if writefile then writefile(DataFile, HttpService:JSONEncode(SAVE)) end end) end
+    local function Get(k, d) return SAVE[k] ~= nil and SAVE[k] or d end
+    local function Set(k, v) SAVE[k] = v; Save() end
+
+    local Window = Rayfield:CreateWindow({
+        Name = "HUS Hub",
+        LoadingTitle = "HUS Hub",
+        LoadingSubtitle = "Loading...",
+        Theme = "Ocean",
+        ConfigurationSaving = { Enabled = true, FolderName = "HusHub", FileName = "Main" },
+        KeySystem = false,
+    })
+
+    sendLog("Hub Loaded", "Player loaded **HUS Hub**", 5763719)
+
+    -- ============================================
+    -- 🔍 FIND REMOTES
+    -- ============================================
+    local HitRF, GrabRF = nil, nil
+    local bioRemote, bioColorRemote, nameRemote, nameColorRemote = nil, nil, nil, nil
+    local REMOTES = {}
+
+    local function isR(o) return o:IsA("RemoteEvent") or o:IsA("RemoteFunction") end
+
+    local PATHS = {
+        { "Packages", "Knit", "Services", "CombatService", "RF", "Hit" },
+        { "Packages", "Knit", "Services", "CombatService", "Hit" },
+        { "Knit", "Services", "CombatService", "Hit" },
+        { "Services", "CombatService", "Hit" },
+        { "CombatService", "Hit" },
+        { "Hit" },
+    }
+
+    local function walk(root, name, d)
+        d = d or 0
+        if d > 7 then return nil end
+        for _, c in ipairs(root:GetChildren()) do
+            if isR(c) and c.Name == name then return c end
+            local f = walk(c, name, d + 1)
+            if f then return f end
+        end
+    end
+
+    local function gather()
+        REMOTES = {}
+        for _, x in ipairs(ReplicatedStorage:GetDescendants()) do
+            if isR(x) then
+                local n = x.Name:lower()
+                if n:find("hit") or n:find("damage") or n:find("dmg") or n:find("slash") then
+                    REMOTES[#REMOTES + 1] = x
+                end
+            end
+        end
+    end
+
+    local function findHit()
+        for _, p in ipairs(PATHS) do
+            local node, ok = ReplicatedStorage, true
+            for i = 1, #p - 1 do
+                node = node and node:FindFirstChild(p[i])
+                if not node then ok = false break end
+            end
+            if ok and node then
+                local r = node:FindFirstChild(p[#p])
+                if r and isR(r) then HitRF = r; gather(); return true end
+            end
+        end
+        local f = walk(ReplicatedStorage, "Hit")
+        if f then HitRF = f; gather(); return true end
+        return false
+    end
+
+    for _, child in pairs(ReplicatedStorage:GetDescendants()) do
+        if isR(child) then
+            local n = child.Name:lower()
+            if n == "grab" then GrabRF = child
+            elseif n == "updatebio" or n == "setbio" or n == "updatebioname" or n == "setbioname" then bioRemote = child
+            elseif n == "updatebiocolor" or n == "setbiocolor" or n == "biocolor" then bioColorRemote = child
+            elseif n == "setrpnamecolor" or n == "updaterpnamecolor" or n == "setnamecolor" then nameColorRemote = child
+            elseif n == "updaterpname" or n == "setrpname" or n == "setname" then nameRemote = child
+            end
+        end
+    end
+
+    task.spawn(function()
+        for _ = 1, 60 do
+            if findHit() then break end
+            task.wait(1)
+        end
+    end)
+
+    -- ============================================
+    -- STATE
+    -- ============================================
+    local function parseList(str)
+        local t = {}
+        if str == "" then return t end
+        for w in str:gmatch("%S+") do table.insert(t, w:lower()) end
+        return t
+    end
+    local function isTarget(n, list)
+        if #list == 0 then return true end
+        for _, v in ipairs(list) do if n:lower():find(v, 1, true) then return true end end
+        return false
+    end
+    local function isSafe(n, list)
+        for _, v in ipairs(list) do if n:lower():find(v, 1, true) then return true end end
+        return false
+    end
+
+    local Toggles = {
+        KillAura = false, Hitbox = false, SpamGrab = false, AutoTarget = false, TpGrabLoop = false,
+        GrabToVoid = false, GrabFromHead = false, VerticalOrbit = false, PulseOrbit = false,
+        ShowDistance = false, FPSBooster = false, AutoExitLowHP = false, DisableFightMode = false,
+        SpinPlayer = false, AntiRag = true, AntiFling = false, AntiAFK = true, AntiVoid = false,
+        EscapeGrab = false, SpeedFlyEnabled = false, FlyActive = false, FlyMode = false,
+        Orbit = false, Headsit = false, Attach = false, MouthBang = false, Bang = false,
+        GlowBio = false, NameGlow = false, FastModeBang = false,
+        KA_MultiRemote = true, KA_Activate = true, KA_Touch = false, KA_Jitter = true,
+        KA_BodyParts = true, KA_Highlight = true, KA_All = false,
+    }
+
+    local Settings = {
+        VoidY = -200, VoidHoldTime = 3, AntiVoidMinY = -260, HeadGrabHeight = 3,
+        VerticalOrbitTopOffset = 3, VerticalOrbitBottomOffset = -3, VerticalOrbitSpeed = 1,
+        PulseOrbitMinRadius = 3, PulseOrbitMaxRadius = 60, PulseOrbitSpeed = 0.5,
+        KA_Range = Get("KA_Range", 60), KA_Power = Get("KA_Power", 30), KA_Rate = Get("KA_Rate", 120),
+        KA_Spread = Get("KA_Spread", 4), KA_MaxFrame = Get("KA_MaxFrame", 1500),
+        KA_Variant = Get("KA_Variant", 1), KA_Damage = Get("KA_Damage", 25),
+        KA_HealthStop = Get("KA_HealthStop", 0), KA_Cooldown = 0,
+        KATargets = Get("KATargets", ""), KASafe = Get("KASafe", ""),
+        HitboxSize = Get("HitboxSize", 12),
+        WalkSpeed = 50, FlySpeed = 100, FlyHoldTime = 0.15,
+        BangTarget = "", BangSpeed = 1,
+        BioColorMode = "black_white", BioCustomColor = Color3.fromRGB(255, 255, 255),
+        BioSpeed = 5, BioText = "HUS Hub", RPNameText = "HUS",
+        LastRPColor = Color3.fromRGB(255, 255, 255),
+        GrabTarget1 = "", GrabTarget2 = "", GrabDistance = 3, AutoTargetRange = 50,
+        SpinSpeed = 30, GymPosition = Vector3.new(-107.13987731933594, 4.336757183074951, 580.064208984375),
+        AutoExitHPThreshold = 40, AutoExitReturnHP = 60, AutoExitSkyHeight = 500,
+        TargetUsername = "",
+    }
+
+    -- ============================================
+    -- ✨ GLOW BIO
+    -- ============================================
+    local bioConn, lastBioColor, lastRPColor, rpNameSetOnce, lastBioText
+
+    local function applyBioText(text)
+        if not bioRemote or lastBioText == text then return end
+        lastBioText = text
+        pcall(function()
+            if bioRemote:IsA("RemoteFunction") then bioRemote:InvokeServer(text)
+            else bioRemote:FireServer(text) end
+        end)
+    end
+    local function applyBioColor(color)
+        if not bioColorRemote then return end
+        pcall(function()
+            if bioColorRemote:IsA("RemoteFunction") then bioColorRemote:InvokeServer(color)
+            else bioColorRemote:FireServer(color) end
+        end)
+    end
+    local function applyRPNameTextOnce(text)
+        if not nameRemote or rpNameSetOnce then return end
+        rpNameSetOnce = true
+        pcall(function()
+            if nameRemote:IsA("RemoteFunction") then nameRemote:InvokeServer(text)
+            else nameRemote:FireServer(text) end
+        end)
+    end
+    local function applyRPNameColorOnly(color)
+        if not nameColorRemote or lastRPColor == color then return end
+        lastRPColor = color
+        pcall(function()
+            if nameColorRemote:IsA("RemoteFunction") then nameColorRemote:InvokeServer(color)
+            else nameColorRemote:FireServer(color) end
+        end)
+    end
+    local function applyBioColorOnly(color)
+        if lastBioColor == color then return end
+        lastBioColor = color
+        applyBioColor(color)
+    end
+    local function applyColors(color)
+        applyBioColorOnly(color)
+        if Toggles.NameGlow then applyRPNameColorOnly(color) end
+    end
+
+    local function startGlowBio()
+        if bioConn then bioConn:Disconnect() end
+        applyBioText(Settings.BioText)
+        if Toggles.NameGlow then applyRPNameTextOnce(Settings.RPNameText) end
+        local hue, state, lastSwitch = 0, false, 0
+        bioConn = RunService.Heartbeat:Connect(function(dt)
+            if not Toggles.GlowBio then return end
+            local now = tick()
+            local speed = Settings.BioSpeed
+            local function alt(a, b)
+                if now - lastSwitch >= 1 / math.max(speed, 0.1) then
+                    state = not state
+                    lastSwitch = now
+                end
+                if state then applyColors(a) else applyColors(b) end
+            end
+            local mode = Settings.BioColorMode
+            if mode == "black_white" then alt(Color3.fromRGB(0, 0, 0), Color3.fromRGB(255, 255, 255))
+            elseif mode == "rainbow" then
+                hue = (hue + speed * 0.5 * dt) % 1
+                applyColors(Color3.fromHSV(hue, 1, 1))
+            elseif mode == "police" then alt(Color3.fromRGB(255, 0, 0), Color3.fromRGB(0, 0, 255))
+            elseif mode == "orange_black" then alt(Color3.fromRGB(255, 140, 0), Color3.fromRGB(0, 0, 0))
+            elseif mode == "purple_blue" then alt(Color3.fromRGB(160, 32, 240), Color3.fromRGB(0, 100, 255))
+            elseif mode == "yellow_green" then alt(Color3.fromRGB(255, 240, 0), Color3.fromRGB(0, 255, 50))
+            elseif mode == "red_black" then alt(Color3.fromRGB(255, 0, 0), Color3.fromRGB(0, 0, 0))
+            elseif mode == "pink_cyan" then alt(Color3.fromRGB(255, 105, 180), Color3.fromRGB(0, 255, 255))
+            elseif mode == "gold_silver" then alt(Color3.fromRGB(255, 215, 0), Color3.fromRGB(192, 192, 192))
+            elseif mode == "lava" then alt(Color3.fromRGB(255, 60, 0), Color3.fromRGB(255, 200, 0))
+            elseif mode == "ice" then alt(Color3.fromRGB(150, 220, 255), Color3.fromRGB(255, 255, 255))
+            elseif mode == "galaxy" then alt(Color3.fromRGB(75, 0, 130), Color3.fromRGB(255, 20, 147))
+            elseif mode == "matrix" then alt(Color3.fromRGB(0, 255, 0), Color3.fromRGB(0, 0, 0))
+            elseif mode == "blood" then alt(Color3.fromRGB(139, 0, 0), Color3.fromRGB(255, 0, 0))
+            elseif mode == "toxic" then alt(Color3.fromRGB(57, 255, 20), Color3.fromRGB(150, 255, 0))
+            elseif mode == "sunset" then alt(Color3.fromRGB(255, 94, 77), Color3.fromRGB(255, 154, 0))
+            elseif mode == "ocean" then alt(Color3.fromRGB(0, 105, 148), Color3.fromRGB(72, 209, 204))
+            elseif mode == "royal" then alt(Color3.fromRGB(75, 0, 130), Color3.fromRGB(255, 215, 0))
+            elseif mode == "cyberpunk" then alt(Color3.fromRGB(255, 0, 255), Color3.fromRGB(0, 255, 255))
+            elseif mode == "neon_green" then alt(Color3.fromRGB(0, 255, 0), Color3.fromRGB(0, 100, 0))
+            elseif mode == "cherry" then alt(Color3.fromRGB(200, 0, 50), Color3.fromRGB(255, 100, 120))
+            elseif mode == "golden_fire" then alt(Color3.fromRGB(255, 200, 0), Color3.fromRGB(255, 80, 0))
+            elseif mode == "plasma" then alt(Color3.fromRGB(255, 0, 200), Color3.fromRGB(0, 255, 255))
+            elseif mode == "aurora" then alt(Color3.fromRGB(0, 255, 150), Color3.fromRGB(150, 0, 255))
+            elseif mode == "sakura" then alt(Color3.fromRGB(255, 183, 197), Color3.fromRGB(255, 220, 230))
+            elseif mode == "vaporwave" then alt(Color3.fromRGB(255, 113, 206), Color3.fromRGB(1, 205, 254))
+            elseif mode == "venom" then alt(Color3.fromRGB(50, 205, 50), Color3.fromRGB(75, 0, 130))
+            elseif mode == "void_walker" then alt(Color3.fromRGB(20, 0, 40), Color3.fromRGB(80, 0, 120))
+            elseif mode == "rainbow_fast" then
+                hue = (hue + speed * 2 * dt) % 1
+                applyColors(Color3.fromHSV(hue, 1, 1))
+            elseif mode == "rainbow_slow" then
+                hue = (hue + speed * 0.1 * dt) % 1
+                applyColors(Color3.fromHSV(hue, 1, 1))
+            elseif mode == "custom" then applyColors(Settings.BioCustomColor)
+            end
+        end)
+    end
+
+    local function stopGlowBio()
+        if bioConn then bioConn:Disconnect(); bioConn = nil end
+        lastBioColor, lastRPColor, lastBioText, rpNameSetOnce = nil, nil, nil, false
+    end
+
+    -- ============================================
+    -- 🚨 ESCAPE GRAB
+    -- ============================================
+    local escapeGrabConn, escapeGrabFlag, grabCooldown, grabConfirm, lastIGrabbedTime = nil, false, 0, 0, 0
+
+    local function isGrabbed()
+        local ch = LocalPlayer.Character
+        if not ch or ch:FindFirstChild("GRAB_weld", true) then return false end
+        for _, p in Players:GetPlayers() do
+            if p ~= LocalPlayer and p.Character then
+                local hu = p.Character:FindFirstChildOfClass("Humanoid")
+                if hu and hu.Health > 0 then
+                    local gw = p.Character:FindFirstChild("GRAB_weld", true)
+                    if gw and (gw:IsA("Weld") or gw:IsA("WeldConstraint")) then
+                        local a, b = gw.Part0, gw.Part1
+                        if a and b then
+                            local aT, bT = a:IsDescendantOf(p.Character), b:IsDescendantOf(p.Character)
+                            local aO, bO = a:IsDescendantOf(ch), b:IsDescendantOf(ch)
+                            if (aT and bO) or (bT and aO) then return true end
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end
+
+    local function escapeFromGrab()
+        if escapeGrabFlag or tick() - grabCooldown < 2 then return end
+        grabCooldown = tick()
+        escapeGrabFlag = true
+        local ch = LocalPlayer.Character
+        local hu = ch and ch:FindFirstChildOfClass("Humanoid")
+        if hu and hu.Health > 0 then hu.Health = 0 end
+        task.wait(0.5)
+        escapeGrabFlag = false
+        grabConfirm = 0
+    end
+
+    local function startEscapeGrab()
+        if escapeGrabConn then escapeGrabConn:Disconnect() end
+        grabConfirm = 0
+        escapeGrabConn = RunService.Heartbeat:Connect(function()
+            if not Toggles.EscapeGrab or escapeGrabFlag then return end
+            if tick() - lastIGrabbedTime < 1.5 then return end
+            if isGrabbed() then
+                grabConfirm = grabConfirm + 1
+                if grabConfirm >= 3 then escapeFromGrab() end
+            else
+                grabConfirm = 0
+            end
+        end)
+    end
+    local function stopEscapeGrab() if escapeGrabConn then escapeGrabConn:Disconnect(); escapeGrabConn = nil end end
+
+    -- ============================================
+    -- 🥊 DISABLE FIGHT MODE
+    -- ============================================
+    local fightConn
+    local function startDisableFight()
+        if fightConn then fightConn:Disconnect() end
+        fightConn = RunService.Heartbeat:Connect(function()
+            if not Toggles.DisableFightMode then return end
+            pcall(function()
+                if LocalPlayer:GetAttribute("Fighting") then LocalPlayer:SetAttribute("Fighting", false) end
+                if LocalPlayer:GetAttribute("Blocking") then LocalPlayer:SetAttribute("Blocking", false) end
+            end)
+        end)
+    end
+    local function stopDisableFight() if fightConn then fightConn:Disconnect(); fightConn = nil end end
+
+    -- ============================================
+    -- 🚨 AUTO EXIT LOW HP
+    -- ============================================
+    local autoExitConn, autoExitCooldown, skyPlatform, isInSky, savedGym = nil, 0, nil, false, nil
+
+    local function makeSky(pos)
+        if skyPlatform then skyPlatform:Destroy() end
+        local plat = Instance.new("Part")
+        plat.Name = "HUS_SkySafe"
+        plat.Size = Vector3.new(200, 1, 200)
+        plat.Anchored = true
+        plat.Transparency = 1
+        plat.CanQuery = false
+        plat.CanTouch = false
+        plat.CFrame = CFrame.new(pos)
+        plat.Parent = workspace
+        local sb = Instance.new("SelectionBox")
+        sb.Adornee = plat
+        sb.LineThickness = 0.1
+        sb.Color3 = Color3.fromRGB(90, 180, 255)
+        sb.Parent = plat
+        skyPlatform = plat
+    end
+
+    local function tpSky()
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp or tick() - autoExitCooldown < 3 then return end
+        autoExitCooldown = tick()
+        savedGym = hrp.Position
+        local p = Vector3.new(hrp.Position.X, hrp.Position.Y + Settings.AutoExitSkyHeight, hrp.Position.Z)
+        makeSky(p)
+        isInSky = true
+        pcall(function() hrp.CFrame = CFrame.new(p + Vector3.new(0, 5, 0)); hrp.AssemblyLinearVelocity = Vector3.zero end)
+    end
+
+    local function tpGym()
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp or tick() - autoExitCooldown < 3 
